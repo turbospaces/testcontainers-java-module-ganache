@@ -1,24 +1,21 @@
 package io.github.ganchix.ganache;
 
-import lombok.extern.slf4j.Slf4j;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.Arrays;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.util.Arrays;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-@Slf4j
 public class GanacheContainerTest {
-
-	private String PRIVATE_KEY_0 = "ae020c8ddb6fbc24e167b011666639d2ce3d4aa0d9c13d02d726d6865618a781";
-	private String PRIVATE_KEY_1 = "81ad1ba5c4da47feb0f0163c0c61a66c4d0e6a66bd839827444b1e3362016140";
+    private final String PRIVATE_KEY_0 = "27dad0620a057abb1ff71966e6da0608065c8e4bf0669c8f554f07ad94197956";
+    private final String PRIVATE_KEY_1 = "bcca18e6ebbb7f2d5fac88ed676ef3e9b6d4d947381d6d977a798238df0ff78a";
 
 
 	@Rule
@@ -55,8 +52,8 @@ public class GanacheContainerTest {
 		ganacheContainer = new GanacheContainer()
 				.withAccounts(
 						Arrays.asList(
-								Account.builder().privateKey(PRIVATE_KEY_0).balance(BigInteger.ONE).build(),
-								Account.builder().privateKey(PRIVATE_KEY_1).balance(BigInteger.TEN).build()
+								new Account(PRIVATE_KEY_0, BigInteger.ONE),
+								new Account(PRIVATE_KEY_1, BigInteger.TEN)
 						)
 				);
 		ganacheContainer.start();

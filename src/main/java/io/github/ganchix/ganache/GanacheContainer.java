@@ -1,27 +1,28 @@
 package io.github.ganchix.ganache;
 
-import lombok.extern.slf4j.Slf4j;
-import org.testcontainers.containers.GenericContainer;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.http.HttpService;
+import static io.github.ganchix.ganache.GanacheConstants.IMAGE;
+import static io.github.ganchix.ganache.GanacheConstants.LATEST_VERSION;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static io.github.ganchix.ganache.GanacheConstants.IMAGE;
-import static io.github.ganchix.ganache.GanacheConstants.LATEST_VERSION;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.GenericContainer;
+import org.web3j.crypto.Credentials;
+import org.web3j.protocol.Web3j;
+import org.web3j.protocol.http.HttpService;
 
-@Slf4j
 public class GanacheContainer<SELF extends GanacheContainer<SELF>> extends GenericContainer<SELF> {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger( GanacheContainer.class );
+    private static final String HOSTNAME = "0.0.0.0";
 	private static final Object DRIVER_LOAD_MUTEX = new Object();
-	private List<String> options = new ArrayList<>();
+	private final List<String> options = new ArrayList<>();
 	private Web3j web3j;
 	private Integer port = 8545;
-	private List<Credentials> credentials = new ArrayList<>();
+	private final List<Credentials> credentials = new ArrayList<>();
 
 	public GanacheContainer() {
 		this(LATEST_VERSION);
@@ -29,14 +30,16 @@ public class GanacheContainer<SELF extends GanacheContainer<SELF>> extends Gener
 
 	public GanacheContainer(String version) {
 		super(IMAGE + ":" + version);
+        withHostname( HOSTNAME );
 	}
 
 
 	@Override
 	protected void configure() {
 		withExposedPorts(port);
-		withLogConsumer(new LogGanacheExtractorConsumer(log, this));
+        withLogConsumer( new LogGanacheExtractorConsumer( LOGGER, this ) );
 		if (options.size() > 0) {
+            System.out.println( String.join( " ", options ) );
 			withCommand(String.join(" ", options));
 		}
 	}
@@ -92,9 +95,8 @@ public class GanacheContainer<SELF extends GanacheContainer<SELF>> extends Gener
 	}
 
 	public SELF withFork(String location) {
-		if (!location.startsWith("http")) {
-			throw new RuntimeException("Location must start with http");
-		}
+		if (!location.startsWith("http"))
+            throw new RuntimeException("Location must start with http");
 		String option = "--fork ".concat(location);
 		options.add(option);
 		return self();
@@ -111,9 +113,8 @@ public class GanacheContainer<SELF extends GanacheContainer<SELF>> extends Gener
 	}
 
 	public SELF withMnemonic(List<String> words) {
-		if (words == null || words.isEmpty()) {
-			throw new RuntimeException("Mnemonic needs a list of words");
-		}
+		if (words == null || words.isEmpty())
+            throw new RuntimeException("Mnemonic needs a list of words");
 		String option = "--mnemonic ".concat(String.join(",", words));
 		options.add(option);
 		return self();
@@ -127,21 +128,20 @@ public class GanacheContainer<SELF extends GanacheContainer<SELF>> extends Gener
 
 
 	public SELF withAccounts(List<Account> accounts) {
-		if (accounts == null || accounts.isEmpty()) {
-			throw new RuntimeException("Accounts can't be empty");
-		}
-		List<String> listOfAccounts = accounts.stream()
-				.map(account -> "--account=" + generatePrivateKey(account.getPrivateKey()) + "," + account.getBalance() )
-				.collect(Collectors.toList());
-
-		options.addAll(listOfAccounts);
+		if (accounts == null || accounts.isEmpty())
+            throw new RuntimeException("Accounts can't be empty");
+        for ( Account next : accounts ) {
+            String privateKey = generatePrivateKey( next.privateKey );
+            String arg = privateKey + "," + next.balance;
+            String option = "--account=" + arg;
+            options.add( option );
+        }
 		return self();
 	}
 
 	public SELF withUnlockedAccountByAddress(List<String> addresses) {
-		if (addresses == null || addresses.isEmpty()) {
-			throw new RuntimeException("Addresses can't be empty");
-		}
+		if (addresses == null || addresses.isEmpty())
+            throw new RuntimeException("Addresses can't be empty");
 		List<String> listOfAccounts = addresses.stream()
 				.map(address -> "--unlock=" + address )
 				.collect(Collectors.toList());
@@ -151,9 +151,8 @@ public class GanacheContainer<SELF extends GanacheContainer<SELF>> extends Gener
 	}
 
 	public SELF withUnlockedAccountByPosition(List<Integer> positions) {
-		if (positions == null || positions.isEmpty()) {
-			throw new RuntimeException("Positions can't be empty");
-		}
+		if (positions == null || positions.isEmpty())
+            throw new RuntimeException("Positions can't be empty");
 		List<String> listOfAccounts = positions.stream()
 				.map(position -> "--unlock=" + position )
 				.collect(Collectors.toList());
@@ -169,6 +168,11 @@ public class GanacheContainer<SELF extends GanacheContainer<SELF>> extends Gener
 		return self();
 	}
 
+    public SELF withHostname(String hostname) {
+        options.add( "--hostname ".concat( hostname ) );
+        return self();
+    }
+
 	public SELF withDebug() {
 		options.add("--debug");
 		return self();
@@ -183,8 +187,8 @@ public class GanacheContainer<SELF extends GanacheContainer<SELF>> extends Gener
 		synchronized (DRIVER_LOAD_MUTEX) {
 			if (web3j == null) {
 				try {
-					web3j = Web3j.build(new HttpService("http://" + getContainerIpAddress() + ":" + getMappedPort(port) + "/"));
-					log.info("Start Web3j with net version: {}", web3j.netVersion().send().getNetVersion());
+                    web3j = Web3j.build( new HttpService( "http://" + getContainerIpAddress() + ":" + getMappedPort( port ) ) );
+                    LOGGER.info( "Start Web3j with net version: {}", web3j.netVersion().send().getNetVersion() );
 				} catch (Exception e) {
 					throw new RuntimeException("Could not get Web3j", e);
 				}

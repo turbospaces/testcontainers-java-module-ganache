@@ -1,22 +1,16 @@
 package io.github.ganchix.ganache;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.web3j.crypto.Credentials;
-
 import java.math.BigInteger;
 
 /**
  * Created by Rafael Ríos on 20/05/18.
  */
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
 public class Account {
+    public final String privateKey;
+    public final BigInteger balance;
 
-    String privateKey;
-    BigInteger balance;
+    public Account(String privateKey, BigInteger balance) {
+        this.privateKey = privateKey;
+        this.balance = balance;
+    }
 }
